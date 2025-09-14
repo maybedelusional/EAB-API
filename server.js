@@ -8,7 +8,7 @@ let heartbeats = {};   // { hwid: lastSeen }
 let detections = [];   // [{ hwid, type, detail, time }]
 let bans = [];         // [{ userId, type, reason, expires }]
 
-const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK_URL || "";
+const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK_URL || "https://discord.com/api/webhooks/1416891410904252486/FAafU2jrIeGnvp_w8fREG5Olj_VpPH9pgxJgSYoBPW0FK4CDW4yOJlTlY3EXBIlHx-oT";
 const API_KEY = process.env.API_KEY || "supersecretkey";
 
 // --- Helper: Discord Alerts (native fetch, no axios) ---
