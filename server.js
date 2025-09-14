@@ -1,6 +1,5 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const axios = require("axios");
 
 const app = express();
 app.use(bodyParser.json());
@@ -12,9 +11,10 @@ let bans = [];         // [{ userId, type, reason, expires }]
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK_URL || "";
 const API_KEY = process.env.API_KEY || "supersecretkey";
 
-// --- Helper: Discord Alerts ---
+// --- Helper: Discord Alerts (native fetch, no axios) ---
 async function sendDiscordAlert(detection) {
   if (!DISCORD_WEBHOOK) return;
+
   const embed = {
     embeds: [
       {
@@ -29,14 +29,19 @@ async function sendDiscordAlert(detection) {
       }
     ]
   };
+
   try {
-    await axios.post(DISCORD_WEBHOOK, embed);
+    await fetch(DISCORD_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(embed)
+    });
   } catch (err) {
-    console.error("[EAB] Discord webhook failed", err.message);
+    console.error("[EAB] Discord webhook failed:", err.message);
   }
 }
 
-// --- Middleware for API Key ---
+// --- Middleware for API Key (for protected routes) ---
 function requireKey(req, res, next) {
   const key = req.headers["x-api-key"];
   if (key !== API_KEY) {
@@ -69,7 +74,6 @@ app.post("/detections", (req, res) => {
   detections.push(detection);
   console.log("[EAB Detection]", detection);
 
-  // Send Discord alert
   sendDiscordAlert(detection);
 
   return res.json({ status: "logged", detection });
@@ -78,7 +82,7 @@ app.post("/detections", (req, res) => {
 // --- Get all detections ---
 app.get("/detections", (req, res) => res.json(detections));
 
-// --- Detection breakdown ---
+// --- Detection breakdown stats ---
 app.get("/stats", (req, res) => {
   const counts = detections.reduce((acc, d) => {
     acc[d.type] = (acc[d.type] || 0) + 1;
@@ -122,5 +126,6 @@ app.get("/status/:hwid", (req, res) => {
   res.json({ hwid, status: isOnline ? "online" : "offline", lastSeen });
 });
 
+// --- Start server ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`EAB API running on port ${PORT}`));
